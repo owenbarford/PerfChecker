@@ -16,46 +16,83 @@ namespace PerfChecker
 {
     public partial class PerfChecker : Form
     {
-        public PerfChecker()
+        public PerfChecker(string start)
         {
             InitializeComponent();
             txtBoxSystemInfo.Text = SystemInfo.AllSysInfo();
             SystemInfo.OnOutputResults += SystemInfo_OnOutputResults;
+            test.sorting.OnResults += Sorting_OnResults;
+            SystemInfo.CancelT += SystemInfo_CancelT;
+            txtBoxArraySize.Text = "1000";
+            if (start == "StartTests")
+            {
+                btn_Execute_Click(new object(), new EventArgs());
+            }
+            else
+            {
+                SplashForm.CloseForm();                
+            }
+            WindowState = FormWindowState.Minimized;
+            Show();
+            WindowState = FormWindowState.Normal;
         }
 
-        private void SystemInfo_OnOutputResults(string timeTaken, long totalCPUTicksUsed, string resultsOutput)
+        private void Sorting_OnResults(string result)
+        {
+            txtBoxConsoleOutput.Invoke((Action)delegate
+            {
+                txtBoxConsoleOutput.AppendText(result);
+                HelperClass.Wait(1);
+            });
+        }
+
+        private void SystemInfo_OnOutputResults(string timeTaken, long totalCPUTicksUsed)
         {
             txtBoxTimeTaken.Text = timeTaken;
             txtBoxCpuTicks.Text = Convert.ToString(totalCPUTicksUsed);
-            txtBoxConsoleOutput.Text = resultsOutput;
+            EnableFormControls();
         }
 
-        private void btn_Execute_Click(object sender, EventArgs e)
+        private void SystemInfo_CancelT()
         {
-            if (grpBoxPerfChecker.Enabled == true)
-            {
-                grpBoxPerfChecker.Enabled = false;
-            }
-            Application.UseWaitCursor = true;
-            btn_Execute.Enabled = false;
+            EnableFormControls();
             ResetForm();
-            txtBoxStartTime.Text = DateTime.Now.ToString();
+        }
 
-            //TextWriter _writer = new ControlWriter(txtBoxConsoleOutput);
-            //Console.SetOut(_writer);
-            SystemInfo.RunTests();
-
+        public void EnableFormControls()
+        {
             grpBoxPerfChecker.Enabled = true;
             btn_Execute.Enabled = true;
             Application.UseWaitCursor = false;
             txtBoxEndTime.Text = DateTime.Now.ToString();
+        }
 
+        private void btn_Execute_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (!String.IsNullOrWhiteSpace(txtBoxArraySize.Text) && HelperClass.IsNumeric(txtBoxArraySize.Text))
+                {
+                    if (grpBoxPerfChecker.Enabled == true)
+                    {
+                        grpBoxPerfChecker.Enabled = false;
+                    }
+                    Application.UseWaitCursor = true;
+                    btn_Execute.Enabled = false;
+                    ResetForm();
+                    txtBoxStartTime.Text = DateTime.Now.ToString();
 
-            //if (backgroundWorkerPerfChecker.IsBusy != true)
-            //{
-            //    // Start the asynchronous operation.
-            //    backgroundWorkerPerfChecker.RunWorkerAsync();
-            //}           
+                    SystemInfo.RunTests(Convert.ToInt32(txtBoxArraySize.Text));
+                }
+                else
+                {
+                    MessageBox.Show("Please enter a valid value for Array Size", VariablesAndConstants.strAppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
         }
 
         private void ResetForm()
@@ -64,90 +101,37 @@ namespace PerfChecker
             txtBoxEndTime.Text = "";
             txtBoxConsoleOutput.Text = "";
             txtBoxTimeTaken.Text = "";
-            txtBoxCpuTicks.Text = "";
+            txtBoxCpuTicks.Text = "";           
         }
 
-        //    private void backgroundWorkerPerfChecker_DoWork(object sender, DoWorkEventArgs e)
-        //    {
-        //        BackgroundWorker worker = sender as BackgroundWorker;
-
-        //        for (int i = 1; i <= 10; i++)
-        //        {
-        //            if (worker.CancellationPending == true)
-        //            {
-        //                e.Cancel = true;
-        //                break;
-        //            }
-        //            else
-        //            {
-        //                // Perform a time consuming operation and report progress.
-        //                Thread.Sleep(500);
-        //                //TextWriter _writer = new ControlWriter(txtBoxConsoleOutput);
-        //                //Console.SetOut(_writer);
-        //                AppendTextBox("Oops...");                    
-
-        //                (string timeTaken, long totalCPUTicksUsed) t1 = SystemInfo.RunTests();                    
-        //                //txtBoxTimeTaken.Text = t1.timeTaken;
-        //                //txtBoxCpuTicks.Text = t1.totalCPUTicksUsed.ToString();
-        //                worker.ReportProgress(i * 10);
-        //            }
-        //        }
-        //    }
-
-        //    public void AppendTextBox(string value)
-        //    {
-        //        if (InvokeRequired)
-        //        {
-        //            BeginInvoke(new Action<string>(AppendTextBox), new object[] { value });
-        //            return;
-        //        }
-        //        txtBoxConsoleOutput.Text += value;
-        //    }
-
-        //    private void backgroundWorkerPerfChecker_ProgressChanged(object sender, ProgressChangedEventArgs e)
-        //    {
-        //        resultLabel.Text = (e.ProgressPercentage.ToString() + "%");            
-        //    }
-
-        //    private void backgroundWorkerPerfChecker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        //    {
-        //        if (e.Cancelled == true)
-        //        {
-        //            resultLabel.Text = "Cancelled!";
-        //        }
-        //        else if (e.Error != null)
-        //        {
-        //            resultLabel.Text = "Error: " + e.Error.Message;
-        //        }
-        //        else
-        //        {
-        //            resultLabel.Text = "Done!";
-        //        }
-        //        grpBoxPerfChecker.Enabled = true;
-        //        btn_Execute.Enabled = true;
-        //        Application.UseWaitCursor = false;
-        //        txtBoxEndTime.Text = DateTime.Now.ToString();
-        //    }
-
-        //    private void btnCancel_Click(object sender, EventArgs e)
-        //    {
-        //        try
-        //        {
-        //            btn_Execute.Enabled = true;
-        //            if (backgroundWorkerPerfChecker.WorkerSupportsCancellation == true)
-        //            {
-        //                backgroundWorkerPerfChecker.CancelAsync();
-        //            }                
-        //            grpBoxPerfChecker.Enabled = true;                
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            MessageBox.Show(ex.ToString(), VariablesAndConstants.strAppName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-        //        }
-        //    }
         private void btnCancel_Click(object sender, EventArgs e)
         {
-            SystemInfo.CancelTack();
+            if(!grpBoxPerfChecker.Enabled)
+            {
+                SystemInfo.CancelTask();
+            }            
+        }
+
+        private void exitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
+
+        private void aboutToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            About aboutForm = new About();
+            aboutForm.Show();
+        }
+
+        private void helpToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Help helpForm = new Help();
+            helpForm.Show();
+        }
+
+        private void lblTimeTaken_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

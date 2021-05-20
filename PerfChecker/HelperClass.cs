@@ -31,5 +31,10 @@ namespace PerfChecker
                 Application.DoEvents();
             }
         }
+
+        public static bool IsNumeric(this string text) 
+        {
+            return double.TryParse(text, out double _out);
+        }
     }
 }
